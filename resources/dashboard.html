@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Voice Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-dim);
+            margin-top: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .description {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .file-info {
+            font-family: monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text-dim);
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #475569;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .playback-btn {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .playback-btn:hover {
+            background: var(--accent);
+            color: var(--bg-color);
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dev Voice Dashboard</h1>
+        <p>Manage your auditory coding experience</p>
+    </div>
+
+    <div class="grid" id="soundGrid">
+        <!-- Cards will be injected here -->
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        
+        let soundConfig = {};
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'updateConfig') {
+                soundConfig = message.config;
+                renderDashboard();
+            }
+        });
+
+        const sounds = [
+            { id: 'startup', title: 'Start Code', desc: 'Plays when you open VS Code or activation.', file: 'hub-intro-sound.mp3' },
+            { id: 'searchFail', title: 'Search Not Found', desc: 'Ripping reality when no results are found.', file: '_Tera baap chod gaya tha...mp3' },
+            { id: 'save', title: 'Manual Save', desc: 'When auto-save is off and you hit save.', file: 'accha-thik-hai-samjhgya-puneet-superstar.mp3' },
+            { id: 'delete', title: 'File Deletion', desc: 'Celebrating the removal of code.', file: 'matlab-wo-alag-hi-level-ka-banda-tha.mp3' },
+            { id: 'branchDirty', title: 'Branch Switch (Dirty)', desc: 'Warning when switching with unstaged changes.', file: 'vine-boom-sound-effect_KT89XIq.mp3' },
+            { id: 'errorSingle', title: 'New Error (1 File)', desc: 'Questioning your lifestyle choices.', file: 'aayein-meme.mp3' },
+            { id: 'errorMedium', title: 'New Error (2-4 Files)', desc: 'ACP Pradyuman levels of suspicion.', file: 'cid-acp-mc.mp3' },
+            { id: 'errorHigh', title: 'New Error (5+ Files)', desc: 'Aggressive debugging feedback.', file: 'kya-cheda-bsd.mp3' },
+            { id: 'mergeConflict', title: 'Merge Conflict (1-2)', desc: 'The omelette is getting messy.', file: 'tehelka-omlette.mp3' },
+            { id: 'mergeConflictHigh', title: 'Merge Conflict (>2)', desc: 'Max aggression for max conflicts.', file: 'teri-gand-mari.mp3' },
+            { id: 'closeError', title: 'Close with Errors', desc: 'A parting gift when you leave bugs.', file: 'gey-echo.mp3' },
+            { id: 'closeDirty', title: 'Close with Changes', desc: 'Reminder to commit before you leave.', file: 'mka-ladle-meow-gop.mp3' },
+        ];
+
+        function renderDashboard() {
+            const grid = document.getElementById('soundGrid');
+            grid.innerHTML = sounds.map(sound => `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="title">${sound.title}</span>
+                        <label class="switch">
+                            <input type="checkbox" ${soundConfig[sound.id] !== false ? 'checked' : ''} 
+                                   onchange="toggleSound('${sound.id}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="description">${sound.desc}</div>
+                    <div class="file-info">${sound.file}</div>
+                    <button class="playback-btn" onclick="previewSound('${sound.file}')">Preview Sound</button>
+                </div>
+            `).join('');
+        }
+
+        function toggleSound(id, enabled) {
+            vscode.postMessage({
+                command: 'toggleSound',
+                id: id,
+                enabled: enabled
+            });
+        }
+
+        function previewSound(file) {
+            vscode.postMessage({
+                command: 'previewSound',
+                file: file
+            });
+        }
+
+        // Initial request for config
+        vscode.postMessage({ command: 'ready' });
+    </script>
+</body>
+</html>
