@@ -1,6 +1,6 @@
 {
   "name": "dev-voice",
-  "publisher": "your-publisher-name",
+  "publisher": "Bytegenius",
   "displayName": "Dev Voice (Universal)",
   "description": "Premium sound effects for coding events. Built for VS Code, Cursor, Antigravity, and AI-powered IDEs.",
   "version": "0.0.1",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/dev-voice"
+    "url": "https://github.com/VikasNadcab/dev_voice"
   },
   "activationEvents": [
     "*"
@@ -52,18 +52,54 @@
           "default": 1.0,
           "description": "Volume level (0.0 to 1.0)."
         },
-        "dev-voice.sounds.startup": { "type": "boolean", "default": true },
-        "dev-voice.sounds.searchFail": { "type": "boolean", "default": true },
-        "dev-voice.sounds.delete": { "type": "boolean", "default": true },
-        "dev-voice.sounds.branchDirty": { "type": "boolean", "default": true },
-        "dev-voice.sounds.errorSingle": { "type": "boolean", "default": true },
-        "dev-voice.sounds.errorMedium": { "type": "boolean", "default": true },
-        "dev-voice.sounds.errorHigh": { "type": "boolean", "default": true },
-        "dev-voice.sounds.fixedMultiple": { "type": "boolean", "default": true },
-        "dev-voice.sounds.mergeConflict": { "type": "boolean", "default": true },
-        "dev-voice.sounds.mergeConflictHigh": { "type": "boolean", "default": true },
-        "dev-voice.sounds.closeError": { "type": "boolean", "default": true },
-        "dev-voice.sounds.closeDirty": { "type": "boolean", "default": true }
+        "dev-voice.sounds.startup": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.searchFail": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.delete": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.branchDirty": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.errorSingle": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.errorMedium": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.errorHigh": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.fixedMultiple": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.mergeConflict": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.mergeConflictHigh": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.closeError": {
+          "type": "boolean",
+          "default": true
+        },
+        "dev-voice.sounds.closeDirty": {
+          "type": "boolean",
+          "default": true
+        }
       }
     }
   },
