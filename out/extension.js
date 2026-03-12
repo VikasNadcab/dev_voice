@@ -46,9 +46,19 @@ function activate(context) {
     currentContext = context;
     console.log('Dev Voice is now active!');
     isEnabled = vscode.workspace.getConfiguration('dev-voice').get('enabled', true);
+    let currentSoundProcess = null;
     const playSound = (soundFile, soundId) => {
         if (!isEnabled)
             return;
+        // Ensure only one sound plays at a time
+        if (currentSoundProcess) {
+            try {
+                // On some systems .kill() might need 'SIGKILL' for immediate stop
+                currentSoundProcess.kill();
+            }
+            catch (e) { }
+            currentSoundProcess = null;
+        }
         // Check if individual sound is enabled
         if (soundId) {
             const isSoundOn = vscode.workspace.getConfiguration('dev-voice.sounds').get(soundId, true);
@@ -56,20 +66,44 @@ function activate(context) {
                 return;
         }
         const soundPath = path.join(context.extensionPath, 'resources', 'sounds', soundFile);
-        player.play(soundPath, (err) => {
-            if (err) {
-                console.error(`Failed to play sound: ${soundFile}`, err);
-            }
-        });
+        const volume = vscode.workspace.getConfiguration('dev-voice').get('volume', 1.0);
+        // Platform-specific player and volume handling
+        const platform = process.platform;
+        let options = {};
+        if (platform === 'darwin') {
+            // Mac: afplay
+            options = { afplay: ['-v', volume.toString()] };
+        }
+        else if (platform === 'linux') {
+            // Linux: prioritize mpg123 or mplayer to avoid 'aplay' static noise with MP3s
+            // mpg123 uses -f for volume (range often 0-32768, but 1.0 scale depends on version)
+            // mplayer uses -volume
+            options = { mplayer: ['-volume', (volume * 100).toString()] };
+            // fallback for mpg123 if used by play-sound
+            options.mpg123 = ['-f', Math.floor(volume * 32768).toString()];
+        }
+        else if (platform === 'win32') {
+            // Windows usually uses cmdmp3 or wmplayer
+            // cmdmp3 doesn't have easy volume flag in standard play-sound wrapper
+        }
+        try {
+            currentSoundProcess = player.play(soundPath, options, (err) => {
+                if (err && !currentSoundProcess) {
+                    // Only log if it wasn't killed by us
+                    console.error(`Playback error on ${platform}:`, err);
+                }
+                currentSoundProcess = null;
+            });
+        }
+        catch (err) {
+            console.error('Failed to initiate playback:', err);
+        }
     };
     // Welcome sound on activation
     playSound('hub-intro-sound.mp3', 'startup');
-    // Save sound
-    let saveDisposable = vscode.workspace.onDidSaveTextDocument(() => {
-        const autoSaveConfig = vscode.workspace.getConfiguration('files').get('autoSave');
-        if (autoSaveConfig === 'off') {
-            playSound('accha-thik-hai-samjhgya-puneet-superstar.mp3');
-        }
+    // Run sound (triggered when user clicks on Run/Debug)
+    let runDisposable = vscode.debug.onDidStartDebugSession(() => {
+        playSound('accha-thik-hai-samjhgya-puneet-superstar.mp3', 'run');
     });
     // File Deletion sound
     let deleteFileDisposable = vscode.workspace.onDidDeleteFiles((event) => {
@@ -131,14 +165,26 @@ function activate(context) {
         lastErrorFileCount = stats.fileWithErrorsCount;
         lastTotalErrorCount = stats.totalErrors;
     });
+    // Track which files have been edited in this session
+    const editedFiles = new Set();
     // Workspace/Folder sounds
     let workspaceDisposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
         playSound('rom-rom-bhaiyo.mp3');
     });
-    let openDocDisposable = vscode.workspace.onDidOpenTextDocument(() => {
-        // Debounce or filter might be needed if many docs open at once, 
-        // but for now simple trigger
-        playSound('rom-rom-bhaiyo.mp3');
+    // Sound for NEW file creation
+    let createFilesDisposable = vscode.workspace.onDidCreateFiles(() => {
+        playSound('rom-rom-bhaiyo.mp3', 'newFile');
+    });
+    // Sound for FIRST edition/edit in a file
+    let firstEditDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+        const uri = event.document.uri.toString();
+        // Skip search results, output channels, and only handle file schemes
+        if (!editedFiles.has(uri) &&
+            event.document.uri.scheme === 'file' &&
+            event.document.languageId !== 'search-result') {
+            editedFiles.add(uri);
+            playSound('rom-rom-bhaiyo.mp3', 'newFile');
+        }
     });
     // Git Listener (Branch + Conflicts)
     let gitDisposable;
@@ -174,6 +220,28 @@ function activate(context) {
             });
         }
     }
+    // Terminal Execution Listeners
+    let terminalDisposable = vscode.window.onDidEndTerminalShellExecution((event) => {
+        const exitCode = event.exitCode;
+        const commandLine = (event.execution.commandLine.value || '').toLowerCase();
+        if (exitCode === 0) {
+            // Success sound
+            playSound('tudum-tedev.mp3', 'terminalSuccess');
+        }
+        else if (exitCode !== undefined && exitCode !== 0) {
+            // Failure logic
+            const devCommands = ['npm run', 'npm install', 'npm i ', 'flutter', 'python', 'node ', 'go run', 'rustc', 'cargo'];
+            const isDevCommand = devCommands.some(cmd => commandLine.includes(cmd));
+            if (isDevCommand) {
+                // Important dev command failed
+                playSound('kya-cheda-bsd.mp3', 'terminalDevFail');
+            }
+            else {
+                // General command error
+                playSound('mka-ladle-meow-gop.mp3', 'terminalFail');
+            }
+        }
+    });
     // Commands
     let enableCommand = vscode.commands.registerCommand('dev-voice.enable', () => {
         isEnabled = true;
@@ -187,15 +255,28 @@ function activate(context) {
     });
     // Custom search command to demonstrate the sound
     let customSearchCommand = vscode.commands.registerCommand('dev-voice.search', async () => {
-        const query = await vscode.window.showInputBox({ prompt: 'Search workspace (Audible)' });
+        const query = await vscode.window.showInputBox({
+            prompt: 'Search (Files or Text)',
+            placeHolder: 'Enter file name or text pattern...'
+        });
         if (query) {
-            const results = await vscode.workspace.findFiles(`**/${query}*`, null, 1);
-            if (results.length === 0) {
+            // First search for files
+            const files = await vscode.workspace.findFiles(`**/${query}*`, null, 1);
+            // If no files found, search for text in active editor
+            let foundText = false;
+            if (files.length === 0 && vscode.window.activeTextEditor) {
+                const text = vscode.window.activeTextEditor.document.getText();
+                if (text.includes(query)) {
+                    foundText = true;
+                    vscode.window.showInformationMessage(`Found "${query}" in current editor.`);
+                }
+            }
+            if (files.length === 0 && !foundText) {
                 playSound('_Tera baap chod gaya tha ki teri maa meme Welcome.mp3');
                 vscode.window.showWarningMessage(`No results found for "${query}"`);
             }
-            else {
-                vscode.window.showInformationMessage(`Found ${results.length} result(s).`);
+            else if (files.length > 0) {
+                vscode.window.showInformationMessage(`Found ${files.length} file(s).`);
             }
         }
     });
@@ -215,7 +296,7 @@ function activate(context) {
                 case 'ready':
                     const config = vscode.workspace.getConfiguration('dev-voice.sounds');
                     const soundMap = {};
-                    ['startup', 'searchFail', 'typing', 'save', 'delete', 'branchDirty', 'errorSingle', 'errorMedium', 'errorHigh', 'mergeConflict', 'mergeConflictHigh', 'closeError', 'closeDirty'].forEach(id => {
+                    ['startup', 'searchFail', 'typing', 'save', 'run', 'newFile', 'delete', 'branchDirty', 'errorSingle', 'errorMedium', 'errorHigh', 'mergeConflict', 'mergeConflictHigh', 'terminalSuccess', 'terminalDevFail', 'terminalFail', 'closeError', 'closeDirty'].forEach(id => {
                         soundMap[id] = config.get(id, true);
                     });
                     panel.webview.postMessage({ command: 'updateConfig', config: soundMap });
@@ -229,7 +310,7 @@ function activate(context) {
             }
         });
     });
-    context.subscriptions.push(saveDisposable, deleteFileDisposable, searchEditorDisposable, diagDisposable, workspaceDisposable, openDocDisposable, dashboardCommand, enableCommand, disableCommand, customSearchCommand);
+    context.subscriptions.push(runDisposable, deleteFileDisposable, searchEditorDisposable, diagDisposable, workspaceDisposable, createFilesDisposable, firstEditDisposable, terminalDisposable, dashboardCommand, enableCommand, disableCommand, customSearchCommand);
     if (gitDisposable)
         context.subscriptions.push(gitDisposable);
 }
@@ -248,14 +329,27 @@ function deactivate() {
         hasUncommitted = currentRepo.state.workingTreeChanges.length > 0 || currentRepo.state.indexChanges.length > 0;
     }
     // Since we are deactivating, we use sync execution or spawn a detached process
-    // On Mac, we use 'afplay'
     const playSync = (file) => {
+        if (!currentContext)
+            return;
         const soundPath = path.join(currentContext.extensionPath, 'resources', 'sounds', file);
-        // Using 'afplay' on Mac to play sound quickly before exit
+        const platform = process.platform;
         try {
-            (0, child_process_1.exec)(`afplay "${soundPath}"`);
+            if (platform === 'darwin') {
+                (0, child_process_1.exec)(`afplay "${soundPath}"`);
+            }
+            else if (platform === 'win32') {
+                // powershell command for windows
+                (0, child_process_1.exec)(`powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`);
+            }
+            else if (platform === 'linux') {
+                // Linux: try mpg123 or mplayer (detached/background)
+                (0, child_process_1.exec)(`mpg123 "${soundPath}" || mplayer "${soundPath}"`);
+            }
         }
-        catch (e) { }
+        catch (e) {
+            console.error('Failed to play exit sound', e);
+        }
     };
     if (totalErrors > 0) {
         playSync('gey-echo.mp3');

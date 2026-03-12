@@ -10,9 +10,11 @@ Dev Voice uses the universal VS Code Extension API, making it compatible with:
 - **Windsurf / PearAI**: Smooth integration with any VS Code-based environment.
 
 ## ✨ Features
-- **Smart Logic**: Distinct sounds for typing, saving, and deleting.
+- **Smart Logic**: Exclusive sounds for file creation, first edits, and starting run/debug sessions.
+- **Terminal Integration**: Auditory completion alerts for terminal commands (Success vs Failure).
 - **AI Error Awareness**: Variable meme sounds based on how many files have errors.
 - **Git Awareness**: Alerts for branch switching with uncommitted changes or merge conflicts.
+- **Cross-Platform**: Fully compatible with macOS, Windows, and Linux.
 - **Dynamic Dashboard**: Full control panel to toggle and preview sounds.
 
 ## 🛠️ Installation on Different IDEs

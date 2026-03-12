@@ -3,10 +3,10 @@
   "publisher": "Bytegenius",
   "displayName": "Dev Voice (Universal)",
   "description": "Premium sound effects for coding events. Built for VS Code, Cursor, Antigravity, and AI-powered IDEs.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "icon": "resources/icon.png",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
@@ -60,6 +60,16 @@
           "type": "boolean",
           "default": true
         },
+        "dev-voice.sounds.run": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sound when clicking on Run/Debug."
+        },
+        "dev-voice.sounds.newFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sound on file creation or first edit."
+        },
         "dev-voice.sounds.delete": {
           "type": "boolean",
           "default": true
@@ -99,6 +109,21 @@
         "dev-voice.sounds.closeDirty": {
           "type": "boolean",
           "default": true
+        },
+        "dev-voice.sounds.terminalSuccess": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sound and command in terminal runs successfully."
+        },
+        "dev-voice.sounds.terminalDevFail": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sound for npm, flutter, etc. command failure."
+        },
+        "dev-voice.sounds.terminalFail": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sound for general terminal command failure."
         }
       }
     }
